@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ürün Listesi</title>
+    <style>
+        .carousel-container {
+            margin: 20px 0;
+            padding: 10px;
+            background: #f8f8f8;
+            border-radius: 8px;
+        }
+        .carousel-title { 
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .carousel {
+            display: flex; 
+            overflow-x: auto;
+            gap: 10px;
+            padding-bottom: 10px;
+            scroll-snap-type: x mandatory;
+        }
+        .carousel-item {
+            flex: 0 0 auto;
+            scroll-snap-align: start;
+            min-width: 150px;
+            max-width: 200px;
+            width: 100%;
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+            box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-height: 300px;
+        }
+        .carousel-item img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+        .carousel-item p {
+            font-size: 14px;
+            margin: 5px 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .carousel-item span {
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+        }
+        .heart-icon {
+            cursor: pointer;
+            font-size: 20px;
+            color: gray;
+            user-select: none;
+        }
+        .heart-icon.favorite {
+            color: blue;
+        }
+    
+    </style>
+</head>
+<body>
+    <div class="product-detail">
+        <!-- Ürün detayları burada yer alacak -->
+    </div>
+    <script>
+        const API_URL = "https://gist.githubusercontent.com/sevindi/5765c5812bbc8238a38b3cf52f233651/raw/56261d81af8561bf0a7cf692fe572f9e1e91f372/products.json";
+        const STORAGE_KEY = "similarProducts";
+        const FAVORITES_KEY = "favoriteProducts";
+
+        const init = async () => {
+            if (document.querySelector(".product-detail") === null) return; // Eğer ürün detay sayfasında değilsek çalıştırma.
+
+            let products = JSON.parse(localStorage.getItem(STORAGE_KEY));
+            if (!products) {
+                products = await fetchProducts();
+                if (products.length > 0) {
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify(products));
+                }
+            }
+
+            buildHTML(products);
+            setEvents();
+        };
+
+        // API'den ürünleri çek
+        const fetchProducts = async () => {
+            try {
+                const response = await fetch(API_URL);
+                const data = await response.json();
+                return Array.isArray(data) ? data : []; // API'den gelen verinin dizi olup olmadığını kontrol et
+            } catch (error) {
+                console.error("Ürünler yüklenirken hata oluştu:", error);
+                return [];
+            }
+        };
+
+        // HTML oluştur
+        const buildHTML = (products) => {
+            if (!products || products.length === 0) return; // Eğer ürün yoksa ekleme yapma
+
+            const savedFavorites = JSON.parse(localStorage.getItem(FAVORITES_KEY)) || [];
+
+            const carouselHTML = `
+                <div class="carousel-container">
+                    <h2 class="carousel-title">Benzer Ürünler</h2>
+                    <div class="carousel">
+                        ${products.map(product => `
+                            <div class="carousel-item">
+                                <a href="${product.url}" target="_blank">
+                                    <img src="https://img-lcwaikiki.mncdn.com/mnpadding/1020/1360/ffffff/pim/productimages/20251/7948912/v1/l_20251-s5k446z8-hnv-87-60-90-175_a.jpg" alt="${product.name}">
+                                </a>
+                                <p>${product.name}</p>
+                                <span>${product.price} TRY</span>
+                                <i class="heart-icon ${savedFavorites.includes(product.id) ? "favorite" : ""}" data-id="${product.id}">❤</i>
+                            </div>
+                        `).join("")}
+                    </div>
+                </div>
+            `;
+
+            document.querySelector(".product-detail").insertAdjacentHTML('afterend', carouselHTML);
+        };
+
+        // Eventleri ata (Favori butonu için)
+        const setEvents = () => {
+            document.querySelectorAll(".heart-icon").forEach(icon => {
+                icon.addEventListener("click", function () {
+                    const productId = this.dataset.id;
+                    let favorites = JSON.parse(localStorage.getItem(FAVORITES_KEY)) || [];
+
+                    if (favorites.includes(productId)) {
+                        favorites = favorites.filter(id => id !== productId);
+                        this.classList.remove("favorite");
+                    } else {
+                        favorites.push(productId);
+                        this.classList.add("favorite");
+                    }
+
+                    localStorage.setItem(FAVORITES_KEY, JSON.stringify(favorites));
+                });
+            });
+        };
+
+        init();
+    </script>
+</body>
+</html>
